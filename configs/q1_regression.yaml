@@ -1,0 +1,54 @@
+extends: base.yaml
+
+question:
+  id: q1_regression
+  title: Regression - regularisation, feature engineering, and model selection
+
+experiment_name: california_housing_baseline
+dataset:
+  name: california_housing
+  source: sklearn.datasets.fetch_california_housing
+  cache_path: data/raw/california_housing.csv
+  test_size: 0.2
+  target_transform: none
+
+cross_validation:
+  outer_strategy: repeated_kfold
+  n_splits: 5
+  n_repeats: 3
+
+analysis:
+  eda_sample_size: 1200
+  target_skew_threshold: 0.75
+  zscore_threshold: 3.0
+  rfe_top_k: 20
+
+models:
+  - linear_regression
+  - ridge_cv
+  - lasso_cv
+  - elastic_net
+  - xgboost_regressor
+  - huber_regressor
+
+feature_engineering:
+  default_polynomial_degree: 2
+  regularized_polynomial_degree: 2
+  polynomial_degrees: [2, 3]
+  use_interactions: true
+  use_log_target_if_skewed: true
+  feature_selection: rfe
+
+tuning:
+  lasso_inner_cv_splits: 3
+  elastic_net_inner_cv_splits: 3
+  boosting_inner_cv_splits: 3
+  xgboost_search_iterations: 4
+
+metrics:
+  - rmse
+  - mae
+  - r2
+  - adjusted_r2
+  - mape
+  - explained_variance

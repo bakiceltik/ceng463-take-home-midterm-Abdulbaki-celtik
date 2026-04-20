@@ -1,0 +1,15 @@
+student:
+  name: TODO
+  id: TODO
+
+project:
+  course: CENG 463
+  assignment: Take-Home Midterm
+  deadline: 2026-04-27 23:59
+
+seed: 463
+n_jobs: -1
+artifacts_root: outputs
+data_root: data
+report_root: reports
+figure_dpi: 200
