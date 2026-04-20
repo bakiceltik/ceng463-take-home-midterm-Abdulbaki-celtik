@@ -1,0 +1,39 @@
+extends: base.yaml
+
+question:
+  id: q4_clustering
+  title: Clustering - GMM, cluster ensembles, and stability analysis
+
+experiment_name: wholesale_customers_baseline
+dataset:
+  name: wholesale_customers
+  path: data/external/wholesale_customers.csv
+  label_column: null
+
+algorithms:
+  - kmeans
+  - gaussian_mixture
+  - dbscan
+  - agglomerative
+
+selection:
+  k_range: [2, 10]
+  use_gap_statistic: true
+  evaluate_bic_aic: true
+  bootstrap_fraction: 0.8
+  bootstrap_rounds: 20
+
+ensemble:
+  enabled: true
+  members:
+    - kmeans
+    - gaussian_mixture
+    - dbscan
+
+metrics:
+  - silhouette
+  - calinski_harabasz
+  - davies_bouldin
+  - adjusted_rand
+  - normalized_mutual_info
+  - fowlkes_mallows

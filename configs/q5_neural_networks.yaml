@@ -1,0 +1,50 @@
+extends: base.yaml
+
+question:
+  id: q5_neural_networks
+  title: Neural networks - regularisation, transfer learning, and interpretability
+
+experiment_name: cifar10_baseline
+dataset:
+  name: cifar10
+  source: torchvision.datasets.CIFAR10
+  data_dir: data/raw
+
+models:
+  - deep_mlp
+  - cnn
+  - transfer_learning_resnet18
+
+training:
+  batch_size: 128
+  epochs: 30
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 5
+
+regularisation:
+  dropout_rates: [0.2, 0.3, 0.5]
+  batch_norm: true
+  data_augmentation:
+    - random_crop
+    - horizontal_flip
+    - rotation
+
+hyperparameter_optimisation:
+  engine: optuna
+  trials: 20
+
+interpretability:
+  cnn_method: grad_cam
+  mlp_method: lime
+
+robustness:
+  attacks:
+    - fgsm
+
+metrics:
+  - accuracy
+  - macro_f1
+  - top5_error
+  - confusion_matrix
+  - per_class_recall

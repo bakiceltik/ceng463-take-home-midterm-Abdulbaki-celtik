@@ -1,0 +1,43 @@
+extends: base.yaml
+
+question:
+  id: q3_dimensionality_reduction
+  title: Dimensionality reduction - autoencoders and manifold learning
+
+experiment_name: fashion_mnist_baseline
+dataset:
+  name: fashion_mnist
+  source: torchvision.datasets.FashionMNIST
+  data_dir: data/raw
+
+methods:
+  - pca
+  - kernel_pca
+  - tsne
+  - umap
+  - autoencoder
+
+tsne:
+  perplexities: [5, 30, 50]
+
+umap:
+  n_neighbors: [10, 15, 30]
+  min_dist: [0.0, 0.1, 0.5]
+
+autoencoder:
+  bottleneck_dim: 3
+  hidden_dims: [256, 128, 64]
+  epochs: 20
+  batch_size: 256
+  learning_rate: 0.001
+
+downstream_classifier:
+  name: knn
+  n_neighbors: 5
+
+metrics:
+  - reconstruction_mse
+  - trustworthiness
+  - continuity
+  - kruskal_stress
+  - cv_accuracy
