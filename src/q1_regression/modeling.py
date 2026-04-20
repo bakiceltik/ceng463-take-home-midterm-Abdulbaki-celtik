@@ -10,6 +10,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from scipy.stats import skew
+from sklearn.base import BaseEstimator, RegressorMixin, clone
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import ElasticNetCV, HuberRegressor, LassoCV, LinearRegression, RidgeCV
@@ -33,6 +34,27 @@ MODEL_LABELS = {
     "xgboost_regressor": "XGBoost Regressor" if HAS_XGBOOST else "HistGradientBoosting",
     "huber_regressor": "Huber Regressor",
 }
+
+
+class ClippedLogTargetRegressor(BaseEstimator, RegressorMixin):
+    """Apply log1p to the target and clip inverse predictions to a sane range."""
+
+    def __init__(self, regressor: object, clip_margin: float = 0.25) -> None:
+        self.regressor = regressor
+        self.clip_margin = clip_margin
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "ClippedLogTargetRegressor":
+        transformed = np.log1p(np.asarray(y, dtype=float))
+        self.regressor_ = clone(self.regressor)
+        self.lower_bound_ = float(np.min(transformed) - self.clip_margin)
+        self.upper_bound_ = float(np.max(transformed) + self.clip_margin)
+        self.regressor_.fit(X, transformed)
+        return self
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        predictions = np.asarray(self.regressor_.predict(X), dtype=float)
+        predictions = np.clip(predictions, self.lower_bound_, self.upper_bound_)
+        return np.expm1(predictions)
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,12 +113,7 @@ def _wrap_target_transform(estimator: object, use_log_target: bool) -> object:
     if not use_log_target:
         return estimator
 
-    return TransformedTargetRegressor(
-        regressor=estimator,
-        func=np.log1p,
-        inverse_func=np.expm1,
-        check_inverse=False,
-    )
+    return ClippedLogTargetRegressor(regressor=estimator)
 
 
 def build_linear_regression(config: dict, use_log_target: bool) -> object:
@@ -165,14 +182,14 @@ def build_elastic_net_cv(config: dict, use_log_target: bool) -> object:
 
 
 def build_huber_regressor(config: dict, use_log_target: bool) -> object:
-    degree = int(config.get("feature_engineering", {}).get("default_polynomial_degree", 2))
+    degree = int(config.get("feature_engineering", {}).get("robust_polynomial_degree", 1))
     estimator = Pipeline(
         steps=[
             ("preprocessor", make_preprocessor(degree)),
-            ("model", HuberRegressor(max_iter=2000, alpha=0.0001)),
+            ("model", HuberRegressor(max_iter=5000, alpha=0.001)),
         ]
     )
-    return _wrap_target_transform(estimator, use_log_target)
+    return estimator
 
 
 def build_boosting_regressor(config: dict, use_log_target: bool) -> object:
@@ -292,6 +309,8 @@ def unwrap_estimator(estimator: object) -> object:
     """Strip target transformation wrappers for downstream inspection."""
 
     if isinstance(estimator, TransformedTargetRegressor):
+        return estimator.regressor_
+    if isinstance(estimator, ClippedLogTargetRegressor):
         return estimator.regressor_
     return estimator
 
