@@ -2,16 +2,54 @@
 
 \subsection{Problem Setup}
 
-Describe the dataset and motivation for comparing linear, kernel, manifold, and neural approaches.
+This question compares linear, kernel-based, manifold-learning, and neural dimensionality reduction methods on Fashion-MNIST \cite{xiao2017fashion}. The experiment uses a balanced subset of 5{,}000 training examples and 1{,}000 test examples, sampled equally from the ten classes so that visual separation and downstream k-NN accuracy are not dominated by class-frequency effects. Images are flattened from $28 \times 28$ pixels into 784-dimensional vectors and scaled to $[0,1]$.
 
 \subsection{Methods}
 
-Document PCA, Kernel PCA, t-SNE, UMAP, and the undercomplete autoencoder. Include the hyperparameters used for perplexity, neighborhood size, and bottleneck dimension.
+The implemented methods are PCA, RBF Kernel PCA, t-SNE \cite{vandermaaten2008tsne}, UMAP \cite{mcinnes2018umap}, and a fully connected undercomplete autoencoder \cite{hinton2006autoencoders}. PCA and Kernel PCA reduce directly to two components. t-SNE is evaluated with perplexities 5, 30, and 50. UMAP is evaluated over $n\_\mathrm{neighbors}\in\{10,15,30\}$ and $\mathrm{min\_dist}\in\{0.0,0.1,0.5\}$. The autoencoder uses encoder layers of 256, 128, and 64 units, a two-dimensional bottleneck, a symmetric decoder, and mean-squared reconstruction loss for 20 epochs.
 
 \subsection{Evaluation}
 
-Report reconstruction error, trustworthiness, continuity, Kruskal stress, and downstream k-NN accuracy on reduced representations. Include 2D or 3D visualisations.
+Table~\ref{tab:q3_reconstruction_knn} summarises the reconstruction and downstream classification results from the run \texttt{20260501-165404\_fashion\_mnist\_baseline}. The autoencoder obtains the lowest reconstruction error. For downstream classification, however, the best result is obtained by t-SNE with perplexity 30, not by the t-SNE configuration selected by manifold-quality metrics.
+
+\begin{table}[htbp]
+\centering
+\caption{Question 3 reconstruction MSE and 5-fold k-NN accuracy on 2D embeddings.}
+\label{tab:q3_reconstruction_knn}
+\begin{tabular}{lcc}
+\toprule
+Method & Reconstruction MSE & k-NN accuracy \\
+\midrule
+PCA & 0.0462 & 0.4902 $\pm$ 0.0089 \\
+Kernel PCA & 0.0660 & 0.4944 $\pm$ 0.0057 \\
+t-SNE, perplexity 30 & -- & \textbf{0.7858 $\pm$ 0.0135} \\
+t-SNE, selected perplexity 50 & -- & 0.7748 $\pm$ 0.0111 \\
+UMAP, $n=15$, min\_dist=0.1 & -- & 0.7204 $\pm$ 0.0101 \\
+Autoencoder & \textbf{0.0339} & 0.5884 $\pm$ 0.0116 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For manifold quality, the selected t-SNE configuration is perplexity 50, with trustworthiness 0.9804, continuity 0.9765, and Kruskal stress 0.3211. This should not be interpreted as the best t-SNE setting for every metric: perplexity 30 gives the highest downstream k-NN accuracy, 0.7858 $\pm$ 0.0135. The selected UMAP configuration is $n=15$, \texttt{min\_dist}=0.1, with trustworthiness 0.9776, continuity 0.9742, Kruskal stress 0.4031, and k-NN accuracy 0.7204 $\pm$ 0.0101.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{../outputs/q3_dimensionality_reduction/20260501-165404_fashion_mnist_baseline/figures/pca_embedding.png}
+\includegraphics[width=0.48\textwidth]{../outputs/q3_dimensionality_reduction/20260501-165404_fashion_mnist_baseline/figures/tsne_perplexity_50_embedding.png}
+\caption{PCA and selected t-SNE 2D embeddings coloured by Fashion-MNIST class.}
+\label{fig:q3_pca_tsne}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{../outputs/q3_dimensionality_reduction/20260501-165404_fashion_mnist_baseline/figures/umap_neighbors_15_min_dist_0.1_embedding.png}
+\includegraphics[width=0.48\textwidth]{../outputs/q3_dimensionality_reduction/20260501-165404_fashion_mnist_baseline/figures/autoencoder_embedding.png}
+\caption{Selected UMAP embedding and learned autoencoder latent space.}
+\label{fig:q3_umap_autoencoder}
+\end{figure}
 
 \subsection{Discussion}
 
-Compare semantic structure, class separation, computational cost, and when autoencoders may outperform shallower methods.
+On this balanced subset, PCA is the fastest method, but its linear projection cannot separate visually similar clothing categories. Kernel PCA improves the representation only slightly for k-NN and requires a kernel matrix, so its memory cost grows poorly with sample count. t-SNE gives the best downstream classification accuracy at perplexity 30, while perplexity 50 is preferred only under the manifold-quality selection rule. Its main limitation is that it is non-parametric and does not naturally transform new samples.
+
+UMAP is competitive on neighbourhood preservation and gives a reusable fitted transformer, but its selected setting is below t-SNE on k-NN accuracy. The autoencoder gives the best reconstruction MSE and a reusable encoder, but its 2D bottleneck is less class-separating than t-SNE and UMAP. The learned latent space is still useful because it captures continuous visual factors such as footwear versus clothing and broad silhouette differences. Autoencoders would be preferable when the system must embed many future samples after training, when the representation should be integrated into a larger neural pipeline, or when deeper architectures can learn non-linear semantic factors that PCA and t-SNE cannot express directly.
