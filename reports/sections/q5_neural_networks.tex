@@ -2,16 +2,96 @@
 
 \subsection{Problem Setup}
 
-Describe the image dataset, class distribution, and train-validation-test split.
+This experiment compares a deep MLP, a CNN trained from scratch, and a transfer-learning ResNet18 baseline on CIFAR-10 \cite{krizhevsky2009cifar}. To keep the run feasible on the available device, the pipeline uses a balanced subset rather than the full dataset: 2{,}500 training images, 500 validation images, and 500 test images. Images are normalised with CIFAR-10 statistics for the MLP/CNN and ImageNet statistics for ResNet18. The reported run uses timestamp \texttt{20260502-160350}.
 
 \subsection{Models and Regularisation}
 
-Cover the deep MLP, CNN, and transfer-learning baseline. Include dropout, batch normalisation, early stopping, data augmentation, and hyperparameter optimisation strategy.
+The MLP flattens each $32\times32$ RGB image and uses four hidden layers of 512 units, batch normalisation, ReLU activations, dropout, Adam, weight decay, and early stopping. The CNN is trained from scratch with four convolutional layers, batch normalisation, max pooling, dropout, and data augmentation through random crop, horizontal flip, and small rotations. The ResNet18 baseline \cite{he2016resnet} starts from ImageNet weights and fine-tunes only the final residual block and classifier head. A compact manual hyperparameter search was used for learning rate, batch size, dropout, and weight decay; all three final models selected learning rate 0.001, batch size 64, and weight decay 0.0001. The MLP and ResNet18 selected dropout 0.3, while the CNN selected dropout 0.5.
 
-\subsection{Evaluation and Interpretability}
+Each final model was configured for 4 epochs and actually trained for all 4 epochs; early stopping did not trigger. The runtime values below are final-model training times only. Search runtimes are saved separately in the generated artefacts.
 
-Report accuracy, macro-F1, top-5 error, confusion matrix, and per-class recall. Include Grad-CAM, LIME, and at least ten misclassified examples per model.
+\subsection{Evaluation}
 
-\subsection{Robustness and Discussion}
+\begin{table}[htbp]
+\centering
+\caption{Question 5 test metrics on the balanced CIFAR-10 subset.}
+\label{tab:q5_metrics}
+\begin{tabular}{lcccc}
+\toprule
+Model & Accuracy & Macro-F1 & Top-5 error & Train runtime (s) \\
+\midrule
+Deep MLP & 0.348 & 0.3444 & 0.144 & 1.10 \\
+CNN from scratch & 0.408 & 0.4019 & 0.104 & 2.64 \\
+ResNet18 transfer & \textbf{0.798} & \textbf{0.7977} & \textbf{0.008} & 5.90 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Summarise adversarial robustness results and discuss the trade-off between complexity, interpretability, and robustness.
+Table~\ref{tab:q5_metrics} shows a clear benefit from transfer learning on this subset. The scratch CNN improves over the MLP by using local spatial structure, while ResNet18 has the strongest accuracy, macro-F1, and top-5 performance. These results should not be read as full CIFAR-10 benchmark scores because both the training and test sets are intentionally reduced.
+
+\begin{table}[htbp]
+\centering
+\caption{Per-class recall and FGSM robustness. FGSM uses $\epsilon=0.03$ in pixel space.}
+\label{tab:q5_recall_fgsm}
+\begin{tabular}{lccc}
+\toprule
+Class / Metric & MLP & CNN & ResNet18 \\
+\midrule
+airplane & 0.44 & 0.60 & 0.84 \\
+automobile & 0.26 & 0.48 & 0.90 \\
+bird & 0.28 & 0.26 & 0.72 \\
+cat & 0.18 & 0.16 & 0.58 \\
+deer & 0.22 & 0.18 & 0.70 \\
+dog & 0.26 & 0.50 & 0.74 \\
+frog & 0.42 & 0.38 & 0.94 \\
+horse & 0.44 & 0.58 & 0.78 \\
+ship & 0.60 & 0.56 & 0.92 \\
+truck & 0.38 & 0.38 & 0.86 \\
+\midrule
+FGSM accuracy & 0.116 & 0.110 & 0.114 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Evaluation and FGSM \cite{goodfellow2015fgsm} use \texttt{model.eval()}. For FGSM, each normalised batch is converted back to $[0,1]$ pixel space, perturbed by $\epsilon=0.03$, clamped to valid pixels, and then re-normalised before the adversarial forward pass. ResNet18 is strongest on most clean classes, especially automobile, frog, ship, and truck. Cat remains the hardest class even for the transfer model, with recall 0.58. Under FGSM, all three models degrade sharply, so clean accuracy should not be treated as evidence of robustness.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/mlp_training_curves.png}
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/cnn_training_curves.png}
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/resnet18_training_curves.png}
+\caption{Training and validation loss/accuracy curves for the three neural models.}
+\label{fig:q5_training_curves}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/mlp_confusion_matrix.png}
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/cnn_confusion_matrix.png}
+\includegraphics[width=0.32\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/resnet18_confusion_matrix.png}
+\caption{Confusion matrices for MLP, scratch CNN, and transfer ResNet18.}
+\label{fig:q5_confusion}
+\end{figure}
+
+\subsection{Interpretability and Discussion}
+
+The pipeline saves ten misclassified examples for each model. Grad-CAM \cite{selvaraju2017gradcam} is applied to selected CNN and ResNet18 mistakes, and LIME \cite{ribeiro2016lime} is applied to one MLP mistake with a limited perturbation budget. The LIME figure should be interpreted only as a local indication of positive superpixel regions for that prediction, not as a global explanation of the MLP.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/cnn_gradcam_misclassified.png}
+\includegraphics[width=0.48\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/resnet18_gradcam_misclassified.png}
+\caption{Grad-CAM heatmaps for selected misclassified CNN and ResNet18 examples.}
+\label{fig:q5_gradcam}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{../outputs/q5_neural_networks/20260502-160350_cifar10_baseline/figures/mlp_lime_examples.png}
+\caption{Original MLP mistake and LIME-selected positive superpixels for that prediction.}
+\label{fig:q5_lime}
+\end{figure}
+
+Overall, the results follow the expected model-capacity ordering on the reduced dataset: the MLP is fastest but ignores image locality, the scratch CNN benefits from convolution and augmentation, and the pretrained ResNet18 gives the best clean classification performance. The robustness result is more cautious: all models are vulnerable to the same pixel-space FGSM attack, and the experiment is too small to support broader robustness claims.
+
+\clearpage

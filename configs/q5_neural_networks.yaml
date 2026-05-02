@@ -9,6 +9,10 @@ dataset:
   name: cifar10
   source: torchvision.datasets.CIFAR10
   data_dir: data/raw
+  download: true
+  train_per_class: 250
+  val_per_class: 50
+  test_per_class: 50
 
 models:
   - deep_mlp
@@ -16,14 +20,15 @@ models:
   - transfer_learning_resnet18
 
 training:
-  batch_size: 128
-  epochs: 30
+  batch_size: 64
+  epochs: 4
   learning_rate: 0.001
   weight_decay: 0.0001
-  early_stopping_patience: 5
+  early_stopping_patience: 2
+  num_workers: 0
 
 regularisation:
-  dropout_rates: [0.2, 0.3, 0.5]
+  dropout_rates: [0.3, 0.5]
   batch_norm: true
   data_augmentation:
     - random_crop
@@ -31,16 +36,33 @@ regularisation:
     - rotation
 
 hyperparameter_optimisation:
-  engine: optuna
-  trials: 20
+  engine: compact_manual_grid
+  max_trials: 2
+  search_epochs: 1
+  learning_rates: [0.001, 0.0005]
+  batch_sizes: [64]
+  dropout_rates: [0.3, 0.5]
+  weight_decays: [0.0001]
+
+transfer_learning:
+  architecture: resnet18
+  pretrained: true
+  trainable_layers:
+    - layer4
+    - fc
 
 interpretability:
   cnn_method: grad_cam
   mlp_method: lime
+  examples_per_model: 10
+  lime_examples: 1
+  lime_samples: 50
 
 robustness:
   attacks:
     - fgsm
+  fgsm_epsilon: 0.03
+  max_batches: 0
 
 metrics:
   - accuracy
