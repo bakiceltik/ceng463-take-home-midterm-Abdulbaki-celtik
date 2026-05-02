@@ -2,7 +2,7 @@
 
 \subsection{Problem Setup}
 
-For Question 1, I used the California Housing dataset from \texttt{sklearn}. The dataset contains 20{,}640 observations, 8 numeric predictors, and a continuous target \texttt{MedHouseVal}. I kept a single holdout test split of 20\% for the final evaluation and performed all model comparison on the remaining 16{,}512 training examples using repeated cross-validation, in line with the instruction that the test set should only be used once at the end.
+For Question 1, I used the California Housing dataset from \texttt{sklearn}, originally described by Pace and Barry \cite{pace1997sparse}. The dataset contains 20{,}640 observations, 8 numeric predictors, and a continuous target \texttt{MedHouseVal}. I kept a single holdout test split of 20\% for the final evaluation and performed all model comparison on the remaining 16{,}512 training examples using repeated cross-validation, in line with the instruction that the test set should only be used once at the end.
 
 Exploratory analysis showed that the target distribution was positively skewed, with training-set skewness equal to 0.9776, so I enabled a \(\log(1+y)\) transform for the main non-robust models. The strongest linear relationship with the target was median income (\(r=0.6881\)), followed by weaker associations for average rooms (\(r=0.1519\)), latitude (\(r=-0.1442\)), and house age (\(r=0.1056\)). Outlier analysis using both the IQR rule and Z-scores suggested that \texttt{AveBedrms}, \texttt{Population}, and \texttt{MedHouseVal} were the most problematic variables under the IQR criterion, with outlier rates of 6.83\%, 5.83\%, and 5.18\%, respectively.
 
@@ -39,7 +39,7 @@ Feature engineering was handled explicitly rather than implicitly. I generated p
 
 Recursive feature elimination was run on the polynomial feature space, and the selected set emphasized interaction-heavy terms involving \texttt{AveBedrms}, \texttt{AveOccup}, \texttt{Latitude}, and \texttt{Longitude}. This result suggests that simple main effects are not sufficient to explain the housing target well, and location-density interactions play an important role.
 
-For the tree-based model, I used a randomized search over boosting hyperparameters. The best final XGBoost configuration used 350 trees, maximum depth 2, learning rate 0.15, subsample 1.0, column sample ratio 0.7, minimum child weight 3, \(\lambda=1.0\), and \(\alpha=0.0\). The Huber baseline was intentionally kept simpler, using degree-1 features on the raw target, because its main role in this assignment was to test whether a robust loss could mitigate outlier sensitivity and residual pathologies.
+For the tree-based model, I used XGBoost \cite{chen2016xgboost} with a randomized search over boosting hyperparameters. The best final XGBoost configuration used 350 trees, maximum depth 2, learning rate 0.15, subsample 1.0, column sample ratio 0.7, minimum child weight 3, \(\lambda=1.0\), and \(\alpha=0.0\). The Huber baseline was intentionally kept simpler, using degree-1 features on the raw target, because its main role in this assignment was to test whether a robust loss could mitigate outlier sensitivity and residual pathologies.
 
 \subsection{Evaluation}
 

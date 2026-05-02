@@ -2,13 +2,13 @@
 
 \subsection{Problem Setup}
 
-For Question 2, I used the credit-card fraud dataset stored at \texttt{data/external/creditcard.csv}. The task is binary fraud detection with target column \texttt{Class}, where the positive class corresponds to fraudulent transactions. The dataset is extremely imbalanced, with a positive rate of 0.030569 and an imbalance ratio of approximately 31.71:1 in favor of the negative class. I kept a single stratified 20\% holdout split for final evaluation and restricted all model selection, resampling, calibration, and threshold tuning to the training portion only.
+For Question 2, I used the credit-card fraud dataset stored at \texttt{data/external/creditcard.csv}, following the unbalanced-classification setting described by Dal Pozzolo et al. \cite{dalpozzolo2015calibrating}. The task is binary fraud detection with target column \texttt{Class}, where the positive class corresponds to fraudulent transactions. The dataset is extremely imbalanced, with a positive rate of 0.030569 and an imbalance ratio of approximately 31.71:1 in favor of the negative class. I kept a single stratified 20\% holdout split for final evaluation and restricted all model selection, resampling, calibration, and threshold tuning to the training portion only.
 
 Leakage prevention was handled explicitly. The final test set was never touched during model comparison. For each cross-validation fold, resampling was performed only inside an \texttt{imblearn} pipeline after preprocessing, so synthetic or undersampled observations were generated from training-fold data only. I scaled \texttt{Time} and \texttt{Amount} while leaving the PCA-style \texttt{V1}--\texttt{V28} features as passthrough numeric inputs.
 
 \subsection{Models and Sampling Strategies}
 
-I compared four classifier families: Logistic Regression, Random Forest, XGBoost, and a feed-forward MLP classifier. Each model was evaluated under five imbalance-handling strategies: no resampling, SMOTE, ADASYN, random undersampling, and cost-sensitive learning. Cost-sensitive learning used \texttt{class\_weight="balanced"} for Logistic Regression and Random Forest, \texttt{scale\_pos\_weight} for XGBoost, and balanced sample weights for the MLP.
+I compared four classifier families: Logistic Regression, Random Forest, XGBoost \cite{chen2016xgboost}, and a feed-forward MLP classifier. Each model was evaluated under five imbalance-handling strategies: no resampling, SMOTE \cite{chawla2002smote}, ADASYN \cite{he2008adasyn}, random undersampling, and cost-sensitive learning. Cost-sensitive learning used \texttt{class\_weight="balanced"} for Logistic Regression and Random Forest, \texttt{scale\_pos\_weight} for XGBoost, and balanced sample weights for the MLP.
 
 Model ranking used 5-fold stratified cross-validation on the training split. Candidates were ordered primarily by PR-AUC, then MCC, then recall, since PR-AUC is more informative than ROC-AUC under severe imbalance and the downstream objective is recall-first fraud detection. The top two uncalibrated candidates were XGBoost Classifier + No Resampling and XGBoost Classifier + Cost Sensitive.
 

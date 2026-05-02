@@ -1,3 +1,7 @@
 \section{Conclusion}
 
-Summarise the main findings across all five questions, compare methodological trade-offs, and reflect on the most reliable modeling choices observed during the midterm.
+Across the five questions, the strongest results came from methods that matched the structure of the data rather than from the most generic baseline. In Question 1, XGBoost gave the best California Housing regression performance, showing that non-linear interactions mattered more than simple polynomial linear models. In Question 2, the calibrated cost-sensitive XGBoost model was the most appropriate fraud detector because the evaluation emphasized PR-AUC, recall, and threshold behaviour under extreme imbalance.
+
+For representation learning, Question 3 showed that dimensionality-reduction goals can disagree. The autoencoder reconstructed Fashion-MNIST best, while t-SNE gave the strongest two-dimensional downstream k-NN accuracy and UMAP remained a practical reusable manifold method. Question 4 similarly showed that clustering metrics must be interpreted carefully: DBSCAN looked best by silhouette, but agglomerative clustering matched the digit labels best under external validation.
+
+Question 5 extended this pattern to neural networks. On a balanced CIFAR-10 subset, transfer learning with ResNet18 clearly outperformed the scratch CNN and deep MLP on clean accuracy, but FGSM testing showed that clean performance did not imply adversarial robustness. Overall, the main lesson is that model choice, validation metric, and evaluation protocol have to be aligned with the task: the best method changed across regression, imbalance-aware classification, dimensionality reduction, clustering, and image classification.
