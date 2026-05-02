@@ -2,16 +2,53 @@
 
 \subsection{Problem Setup}
 
-Describe the dataset and whether external validation labels are available.
+The configured Wholesale Customers CSV was not available in the repository, so this experiment uses the assignment's optional labelled \texttt{optdigits} setting through the local sklearn digits loader. The dataset contains 1{,}797 handwritten digit images represented by 64 pixel-intensity features. Features are standardised before clustering. The digit labels are not used to fit the clustering models; they are used only for optional external validation with ARI, NMI, and Fowlkes-Mallows scores.
 
 \subsection{Methods}
 
-Document K-Means, Gaussian Mixture Models, DBSCAN, and Agglomerative Clustering. Include model-selection choices such as elbow curves, BIC/AIC, and dendrogram analysis.
+Four clustering algorithms are implemented. K-Means is evaluated over $k=2,\ldots,10$ using inertia, silhouette \cite{rousseeuw1987silhouettes}, and gap-statistic diagnostics; the final choice is $k=10$. Gaussian Mixture Models are selected with BIC/AIC, resulting in 5 components. DBSCAN \cite{ester1996dbscan} uses a k-distance graph with \texttt{min\_samples}=5 and selects $\epsilon=5.772$ from the quantile grid. Agglomerative clustering uses Ward linkage and selects $k=10$ by silhouette, with a truncated dendrogram saved for inspection.
+
+The ensemble method builds a co-association matrix from K-Means, a nearby K-Means variant, GMM, and DBSCAN, then reclusters the matrix with average-linkage agglomerative clustering. This gives a direct comparison between individual methods and a simple consensus clustering.
 
 \subsection{Evaluation}
 
-Report internal metrics, optional external metrics, bootstrap stability analysis, and the cluster ensemble comparison.
+\begin{table}[htbp]
+\centering
+\caption{Question 4 clustering metrics on the optdigits dataset.}
+\label{tab:q4_clustering_metrics}
+\begin{tabular}{lcccc}
+\toprule
+Method & Silhouette & ARI & NMI & Stability ARI \\
+\midrule
+K-Means & 0.1469 & 0.4684 & 0.6279 & 0.8064 \\
+GMM & 0.0923 & 0.0359 & 0.1932 & 0.4639 \\
+DBSCAN & \textbf{0.2522} & 0.0009 & 0.0189 & \textbf{0.8579} \\
+Agglomerative & 0.1253 & \textbf{0.6643} & \textbf{0.7956} & 0.7716 \\
+Ensemble & 0.0787 & 0.2692 & 0.5039 & 0.4880 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:q4_clustering_metrics} shows that internal and external criteria disagree. DBSCAN has the highest silhouette and stability, but it finds only two non-noise clusters with about 5.1\% noise, so it does not recover the ten digit classes. Agglomerative clustering has the strongest external validation, with ARI \cite{hubert1985comparing} 0.6643 and NMI 0.7956. K-Means is less accurate externally but is relatively stable across 80\% bootstrap subsamples. The ensemble improves over GMM and DBSCAN in ARI/NMI, but it does not outperform the best individual method.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{../outputs/q4_clustering/20260502-114853_optdigits_clustering_baseline/figures/model_selection_kmeans_gmm.png}
+\includegraphics[width=0.48\textwidth]{../outputs/q4_clustering/20260502-114853_optdigits_clustering_baseline/figures/model_selection_dbscan_agglomerative.png}
+\caption{Q4 model-selection diagnostics for K-Means/GMM and DBSCAN/Agglomerative clustering.}
+\label{fig:q4_model_selection}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{../outputs/q4_clustering/20260502-114853_optdigits_clustering_baseline/figures/pca_projection_kmeans.png}
+\includegraphics[width=0.48\textwidth]{../outputs/q4_clustering/20260502-114853_optdigits_clustering_baseline/figures/pca_projection_agglomerative.png}
+\caption{PCA projections coloured by K-Means and Agglomerative cluster assignments.}
+\label{fig:q4_cluster_projection}
+\end{figure}
 
 \subsection{Discussion}
 
-Explain how each algorithm's assumptions affect results, especially when cluster shapes violate spherical or Gaussian assumptions.
+The results illustrate why clustering should not be judged by one metric alone. K-Means assumes roughly spherical clusters and performs reasonably when $k=10$, but digit shapes overlap in the pixel space, limiting ARI. GMM assumes Gaussian mixture components; BIC favours only 5 components, which under-segments the ten digit classes. DBSCAN is stable and obtains the highest silhouette because it separates a dense core from outliers, but this density-based structure is not aligned with the semantic digit labels. Ward agglomerative clustering best matches the external labels, suggesting that hierarchical merges capture digit similarity more effectively than the flat Gaussian or density assumptions in this feature space. The ensemble is useful as a robustness check, but its consensus is pulled down by weak GMM and DBSCAN partitions.
+
+\clearpage

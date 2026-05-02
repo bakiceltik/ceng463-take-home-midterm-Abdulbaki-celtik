@@ -4,11 +4,12 @@ question:
   id: q4_clustering
   title: Clustering - GMM, cluster ensembles, and stability analysis
 
-experiment_name: wholesale_customers_baseline
+experiment_name: optdigits_clustering_baseline
 dataset:
-  name: wholesale_customers
+  name: optdigits
   path: data/external/wholesale_customers.csv
   label_column: null
+  sample_size: 0
 
 algorithms:
   - kmeans
@@ -22,13 +23,22 @@ selection:
   evaluate_bic_aic: true
   bootstrap_fraction: 0.8
   bootstrap_rounds: 20
+  gap_reference_datasets: 10
+
+dbscan:
+  min_samples: 5
+  eps_quantiles: [0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
 
 ensemble:
   enabled: true
+  n_clusters: 0
   members:
     - kmeans
     - gaussian_mixture
     - dbscan
+
+visualisation:
+  dendrogram_sample_size: 300
 
 metrics:
   - silhouette
