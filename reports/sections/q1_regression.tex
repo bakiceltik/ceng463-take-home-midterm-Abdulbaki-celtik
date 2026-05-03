@@ -12,12 +12,12 @@ Figure~\ref{fig:q1-eda} summarizes the main exploratory findings. The correspond
   \centering
   \begin{minipage}[t]{0.48\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-115547_california_housing_baseline/figures/feature_distributions.png}
+    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-145313_california_housing_baseline/figures/feature_distributions.png}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.48\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-115547_california_housing_baseline/figures/correlation_heatmap.png}
+    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-145313_california_housing_baseline/figures/correlation_heatmap.png}
   \end{minipage}
   \caption{Exploratory analysis for the California Housing regression task. The left panel shows the feature and target distributions, while the right panel shows the full correlation heatmap.}
   \label{fig:q1-eda}
@@ -47,8 +47,9 @@ I evaluated all models using RMSE, MAE, \(R^2\), adjusted \(R^2\), MAPE, and exp
 
 \begin{table}[htbp]
   \centering
-  \caption{Repeated 5-fold cross-validation results for Question 1. Lower RMSE, MAE, and MAPE are better; higher \(R^2\), adjusted \(R^2\), and explained variance are better.}
+  \caption{Repeated cross-validation results for Question 1.}
   \label{tab:q1-cv}
+  \resizebox{\textwidth}{!}{%
   \begin{tabular}{lrrrrrr}
     \toprule
     Model & RMSE & MAE & \(R^2\) & Adj. \(R^2\) & MAPE & Exp. Var. \\
@@ -61,6 +62,7 @@ I evaluated all models using RMSE, MAE, \(R^2\), adjusted \(R^2\), MAPE, and exp
     Huber Regressor & \(1.4543 \pm 1.1438\) & \(0.5651 \pm 0.0231\) & \(-1.4667 \pm 3.7966\) & \(-1.4727 \pm 3.8058\) & \(0.3222 \pm 0.0182\) & \(-1.4558 \pm 3.7918\) \\
     \bottomrule
   \end{tabular}
+  }
 \end{table}
 
 XGBoost was the clear winner on every reported metric. Its advantage was not only numerical but also statistically consistent across folds. Paired tests on fold-level RMSE showed that XGBoost significantly outperformed Linear Regression (\(p=4.79\times10^{-18}\)), RidgeCV (\(p=2.24\times10^{-12}\)), LassoCV (\(p=2.57\times10^{-14}\)), Elastic Net (\(p=2.38\times10^{-14}\)), and Huber Regressor (\(p=6.62\times10^{-3}\)). The corresponding Wilcoxon signed-rank tests also favored XGBoost, with \(p=6.1\times10^{-5}\) in all pairwise comparisons reported by the pipeline.
@@ -87,12 +89,12 @@ Residual diagnostics were also computed on the final holdout predictions. For XG
   \centering
   \begin{minipage}[t]{0.48\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-115547_california_housing_baseline/figures/xgboost_regressor_residuals.png}
+    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-145313_california_housing_baseline/figures/xgboost_regressor_residuals.png}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{0.48\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-115547_california_housing_baseline/figures/xgboost_regressor_qq.png}
+    \includegraphics[width=\textwidth]{../outputs/q1_regression/20260420-145313_california_housing_baseline/figures/xgboost_regressor_qq.png}
   \end{minipage}
   \caption{Residual diagnostics for the final XGBoost model. The residual plot shows non-constant spread, and the Q-Q plot shows clear departures from Gaussian residuals.}
   \label{fig:q1-residuals}

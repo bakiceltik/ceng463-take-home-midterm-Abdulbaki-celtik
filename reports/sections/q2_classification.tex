@@ -2,7 +2,7 @@
 
 \subsection{Problem Setup}
 
-For Question 2, I used the credit-card fraud dataset stored at \texttt{data/external/creditcard.csv}, following the unbalanced-classification setting described by Dal Pozzolo et al. \cite{dalpozzolo2015calibrating}. The task is binary fraud detection with target column \texttt{Class}, where the positive class corresponds to fraudulent transactions. The dataset is extremely imbalanced, with a positive rate of 0.030569 and an imbalance ratio of approximately 31.71:1 in favor of the negative class. I kept a single stratified 20\% holdout split for final evaluation and restricted all model selection, resampling, calibration, and threshold tuning to the training portion only.
+For Question 2, I used the credit-card fraud dataset stored at \texttt{data/external/creditcard.csv} \cite{ulbCreditCardFraud}, following the unbalanced-classification setting described by Dal Pozzolo et al. \cite{dalpozzolo2015calibrating}. The task is binary fraud detection with target column \texttt{Class}, where the positive class corresponds to fraudulent transactions. The dataset is extremely imbalanced, with a positive rate of 0.030569 and an imbalance ratio of approximately 31.71:1 in favor of the negative class. I kept a single stratified 20\% holdout split for final evaluation and restricted all model selection, resampling, calibration, and threshold tuning to the training portion only.
 
 Leakage prevention was handled explicitly. The final test set was never touched during model comparison. For each cross-validation fold, resampling was performed only inside an \texttt{imblearn} pipeline after preprocessing, so synthetic or undersampled observations were generated from training-fold data only. I scaled \texttt{Time} and \texttt{Amount} while leaving the PCA-style \texttt{V1}--\texttt{V28} features as passthrough numeric inputs.
 
@@ -14,8 +14,9 @@ Model ranking used 5-fold stratified cross-validation on the training split. Can
 
 \begin{table}[htbp]
   \centering
-  \caption{Top cross-validation results for Question 2, ordered by PR-AUC.}
+  \caption{Top Question 2 cross-validation results.}
   \label{tab:q2-cv}
+  \resizebox{\textwidth}{!}{%
   \begin{tabular}{lrrrrr}
     \toprule
     Candidate & PR-AUC & MCC & Recall & Precision & Balanced Acc. \\
@@ -24,6 +25,7 @@ Model ranking used 5-fold stratified cross-validation on the training split. Can
     XGBoost Classifier + Cost Sensitive & 0.9104 $\pm$ 0.0230 & 0.9040 & 0.8625 & 0.9540 & 0.9306 \\
     \bottomrule
   \end{tabular}
+  }
 \end{table}
 
 \subsection{Evaluation and Calibration}
@@ -34,7 +36,7 @@ The best calibrated variant overall was XGBoost Classifier + Cost Sensitive with
 
 \begin{table}[htbp]
   \centering
-  \caption{Threshold comparison for the selected final model on the holdout split.}
+  \caption{Threshold comparison for the selected final model on the calibration split used for threshold selection.}
   \label{tab:q2-thresholds}
   \begin{tabular}{lrrrrr}
     \toprule
@@ -46,7 +48,7 @@ The best calibrated variant overall was XGBoost Classifier + Cost Sensitive with
   \end{tabular}
 \end{table}
 
-The final selected model was XGBoost Classifier + Cost Sensitive, evaluated on the untouched holdout set. Under the default recall-first threshold, it achieved precision 0.9268, recall 0.8000, PR-AUC 0.8558, MCC 0.8571, balanced accuracy 0.8990, and Brier score 0.007574. Figures~\ref{fig:q2-pr-roc} and \ref{fig:q2-calibration-confusion} visualize the final decision behavior.
+Table~\ref{tab:q2-thresholds} is not the final test result; it reports the calibration split used to choose the operating threshold without touching the holdout set. The final selected model was then evaluated once on the untouched holdout set. Under the default recall-first threshold, it achieved precision 0.9268, recall 0.8000, PR-AUC 0.8558, MCC 0.8571, balanced accuracy 0.8990, and Brier score 0.007574. Figures~\ref{fig:q2-pr-roc} and \ref{fig:q2-calibration-confusion} visualize the final holdout decision behavior.
 
 \begin{figure}[htbp]
   \centering

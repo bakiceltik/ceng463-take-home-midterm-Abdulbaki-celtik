@@ -2,7 +2,7 @@
 
 \subsection{Problem Setup}
 
-The configured Wholesale Customers CSV was not available in the repository, so this experiment uses the assignment's optional labelled \texttt{optdigits} setting through the local sklearn digits loader. The dataset contains 1{,}797 handwritten digit images represented by 64 pixel-intensity features. Features are standardised before clustering. The digit labels are not used to fit the clustering models; they are used only for optional external validation with ARI, NMI, and Fowlkes-Mallows scores.
+The configured Wholesale Customers CSV was not available in the repository, so this experiment uses the assignment's optional labelled \texttt{optdigits} setting through the local sklearn digits loader \cite{uciOpticalDigits}. The dataset contains 1{,}797 handwritten digit images represented by 64 pixel-intensity features. Features are standardised before clustering. The digit labels are not used to fit the clustering models; they are used only for optional external validation with ARI, NMI, and Fowlkes-Mallows scores.
 
 \subsection{Methods}
 
@@ -14,22 +14,24 @@ The ensemble method builds a co-association matrix from K-Means, a nearby K-Mean
 
 \begin{table}[htbp]
 \centering
-\caption{Question 4 clustering metrics on the optdigits dataset.}
+\caption{Question 4 clustering metrics on the optdigits dataset. CH is Calinski-Harabasz, DB is Davies-Bouldin, and FMI is Fowlkes-Mallows.}
 \label{tab:q4_clustering_metrics}
-\begin{tabular}{lcccc}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
 \toprule
-Method & Silhouette & ARI & NMI & Stability ARI \\
+Method & Silhouette & CH & DB & ARI & NMI & FMI & Stability ARI \\
 \midrule
-K-Means & 0.1469 & 0.4684 & 0.6279 & 0.8064 \\
-GMM & 0.0923 & 0.0359 & 0.1932 & 0.4639 \\
-DBSCAN & \textbf{0.2522} & 0.0009 & 0.0189 & \textbf{0.8579} \\
-Agglomerative & 0.1253 & \textbf{0.6643} & \textbf{0.7956} & 0.7716 \\
-Ensemble & 0.0787 & 0.2692 & 0.5039 & 0.4880 \\
+K-Means & 0.1469 & \textbf{115.04} & \textbf{1.89} & 0.4684 & 0.6279 & 0.5352 & 0.8064 \\
+GMM & 0.0923 & 70.43 & 2.68 & 0.0359 & 0.1932 & 0.2682 & 0.4639 \\
+DBSCAN & \textbf{0.2522} & 23.88 & 3.54 & 0.0009 & 0.0189 & 0.3000 & \textbf{0.8579} \\
+Agglomerative & 0.1253 & 105.83 & 1.97 & \textbf{0.6643} & \textbf{0.7956} & \textbf{0.7111} & 0.7716 \\
+Ensemble & 0.0787 & 78.48 & 1.95 & 0.2692 & 0.5039 & 0.4142 & 0.4880 \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-Table~\ref{tab:q4_clustering_metrics} shows that internal and external criteria disagree. DBSCAN has the highest silhouette and stability, but it finds only two non-noise clusters with about 5.1\% noise, so it does not recover the ten digit classes. Agglomerative clustering has the strongest external validation, with ARI \cite{hubert1985comparing} 0.6643 and NMI 0.7956. K-Means is less accurate externally but is relatively stable across 80\% bootstrap subsamples. The ensemble improves over GMM and DBSCAN in ARI/NMI, but it does not outperform the best individual method.
+Table~\ref{tab:q4_clustering_metrics} shows that internal and external criteria disagree. DBSCAN has the highest silhouette and stability, but it finds only two non-noise clusters with about 5.1\% noise, so it does not recover the ten digit classes. K-Means has the best CH score and lowest DB score, while Agglomerative clustering has the strongest external validation, with ARI \cite{hubert1985comparing} 0.6643, NMI 0.7956, and FMI 0.7111. The ensemble improves over GMM and DBSCAN in ARI/NMI, but it does not outperform the best individual method.
 
 \begin{figure}[htbp]
 \centering

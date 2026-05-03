@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import itertools
 import os
 import time
 import warnings
@@ -19,12 +18,13 @@ os.environ.setdefault("XDG_CACHE_HOME", "/tmp/ceng463-cache")
 import joblib
 import matplotlib
 import numpy as np
+import optuna
 import pandas as pd
 import torch
 from PIL import Image
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 from torch import nn
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, models, transforms
 
 from src.common.config import load_config
@@ -383,26 +383,83 @@ def model_specs(config: dict[str, Any]) -> list[ModelSpec]:
     ]
 
 
-def search_candidates(config: dict[str, Any]) -> list[dict[str, Any]]:
-    """Build compact manual grid candidates."""
+def search_space(config: dict[str, Any]) -> dict[str, list[Any]]:
+    """Return the compact Optuna search space from config values."""
 
     search_cfg = config.get("hyperparameter_optimisation", {})
-    values = {
+    return {
         "learning_rate": search_cfg.get("learning_rates", [0.001]),
         "batch_size": search_cfg.get("batch_sizes", [128]),
         "dropout": search_cfg.get("dropout_rates", [0.3]),
         "weight_decay": search_cfg.get("weight_decays", [0.0001]),
     }
-    candidates = [
-        dict(zip(values.keys(), combo))
-        for combo in itertools.product(
-            values["learning_rate"],
-            values["batch_size"],
-            values["dropout"],
-            values["weight_decay"],
+
+
+def suggest_params(trial: optuna.Trial, values: dict[str, list[Any]]) -> dict[str, Any]:
+    """Sample one hyperparameter set for the mini Optuna search."""
+
+    return {
+        "learning_rate": float(trial.suggest_categorical("learning_rate", values["learning_rate"])),
+        "batch_size": int(trial.suggest_categorical("batch_size", values["batch_size"])),
+        "dropout": float(trial.suggest_categorical("dropout", values["dropout"])),
+        "weight_decay": float(trial.suggest_categorical("weight_decay", values["weight_decay"])),
+    }
+
+
+def run_optuna_search(
+    spec: ModelSpec,
+    train_dataset: datasets.CIFAR10,
+    test_dataset: datasets.CIFAR10,
+    splits: SplitIndices,
+    config: dict[str, Any],
+    search_epochs: int,
+    device: torch.device,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Run a compact Optuna search for one model and return best params plus trial rows."""
+
+    search_cfg = config.get("hyperparameter_optimisation", {})
+    max_trials = int(search_cfg.get("max_trials", 2))
+    values = search_space(config)
+    sampler = optuna.samplers.TPESampler(seed=int(config.get("seed", 463)))
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=sampler,
+        study_name=f"q5_{spec.key}_compact_search",
+    )
+    trial_rows: list[dict[str, Any]] = []
+
+    def objective(trial: optuna.Trial) -> float:
+        params = suggest_params(trial, values)
+        result = train_one_model(
+            spec,
+            params,
+            train_dataset,
+            test_dataset,
+            splits,
+            config,
+            search_epochs,
+            device,
         )
-    ]
-    return candidates[: int(search_cfg.get("max_trials", 2))]
+        trial_rows.append(
+            {
+                "model_key": spec.key,
+                "candidate_id": trial.number + 1,
+                "trial_number": trial.number,
+                "best_val_accuracy": result.best_val_accuracy,
+                "runtime_seconds": result.runtime_seconds,
+                **params,
+            }
+        )
+        return result.best_val_accuracy
+
+    study.optimize(objective, n_trials=max_trials, show_progress_bar=False)
+    best_params = {
+        "learning_rate": float(study.best_params["learning_rate"]),
+        "batch_size": int(study.best_params["batch_size"]),
+        "dropout": float(study.best_params["dropout"]),
+        "weight_decay": float(study.best_params["weight_decay"]),
+    }
+    return best_params, trial_rows
 
 
 def train_one_model(
@@ -877,31 +934,24 @@ def main() -> None:
     )
 
     specs = model_specs(config)
-    candidates = search_candidates(config)
     search_epochs = int(config.get("hyperparameter_optimisation", {}).get("search_epochs", 1))
     final_epochs = int(config.get("training", {}).get("epochs", 4))
     search_rows = []
     best_params: dict[str, dict[str, Any]] = {}
 
     for spec in specs:
-        best_score = -np.inf
-        best_candidate = candidates[0]
-        for candidate_id, params in enumerate(candidates, start=1):
-            result = train_one_model(spec, params, train_dataset, test_dataset, splits, config, search_epochs, device)
-            search_rows.append(
-                {
-                    "model_key": spec.key,
-                    "candidate_id": candidate_id,
-                    "best_val_accuracy": result.best_val_accuracy,
-                    "runtime_seconds": result.runtime_seconds,
-                    **params,
-                }
-            )
-            if result.best_val_accuracy > best_score:
-                best_score = result.best_val_accuracy
-                best_candidate = params
-        best_params[spec.key] = best_candidate
-        print(f"Selected params for {spec.key}: {best_candidate}")
+        selected_params, trial_rows = run_optuna_search(
+            spec,
+            train_dataset,
+            test_dataset,
+            splits,
+            config,
+            search_epochs,
+            device,
+        )
+        search_rows.extend(trial_rows)
+        best_params[spec.key] = selected_params
+        print(f"Selected params for {spec.key}: {selected_params}")
 
     search_frame = pd.DataFrame(search_rows)
     search_frame.to_csv(tables_dir / "hyperparameter_search.csv", index=False)
@@ -1009,6 +1059,7 @@ def main() -> None:
             "configured_final_epochs": final_epochs,
             "actual_epochs": {result.model_key: int(len(result.history)) for result in final_results},
             "early_stopped": {result.model_key: bool(len(result.history) < final_epochs) for result in final_results},
+            "hyperparameter_search_engine": config.get("hyperparameter_optimisation", {}).get("engine", "optuna_compact_search"),
             "runtime_seconds_scope": "final model training only; hyperparameter-search runtimes are reported separately",
             "fgsm_epsilon_space": "pixel space [0, 1], then re-normalized before model evaluation",
             "best_params": best_params,

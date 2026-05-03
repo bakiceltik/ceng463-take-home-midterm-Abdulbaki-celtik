@@ -36,7 +36,7 @@ regularisation:
     - rotation
 
 hyperparameter_optimisation:
-  engine: compact_manual_grid
+  engine: optuna_compact_search
   max_trials: 2
   search_epochs: 1
   learning_rates: [0.001, 0.0005]

@@ -2,11 +2,11 @@
 
 \subsection{Problem Setup}
 
-This experiment compares a deep MLP, a CNN trained from scratch, and a transfer-learning ResNet18 baseline on CIFAR-10 \cite{krizhevsky2009cifar}. To keep the run feasible on the available device, the pipeline uses a balanced subset rather than the full dataset: 2{,}500 training images, 500 validation images, and 500 test images. Images are normalised with CIFAR-10 statistics for the MLP/CNN and ImageNet statistics for ResNet18. The reported run uses timestamp \texttt{20260502-160350}.
+This experiment compares a deep MLP, a CNN trained from scratch, and a transfer-learning ResNet18 baseline on CIFAR-10 \cite{krizhevsky2009cifar}. To keep the run feasible on the available device, the pipeline uses a balanced subset rather than the full dataset: 2{,}500 training images, 500 validation images, and 500 test images. Images are normalised with CIFAR-10 statistics for the MLP/CNN and ImageNet statistics for ResNet18. The reported run uses timestamp \texttt{20260502-160350}. The subset was sampled equally from the ten CIFAR-10 classes. I used this reduced but class-balanced protocol to keep repeated model training, Optuna search, FGSM evaluation, and interpretability experiments reproducible within the assignment runtime. Therefore, the results are intended for controlled comparison between architectures rather than as full CIFAR-10 benchmark scores.
 
 \subsection{Models and Regularisation}
 
-The MLP flattens each $32\times32$ RGB image and uses four hidden layers of 512 units, batch normalisation, ReLU activations, dropout, Adam, weight decay, and early stopping. The CNN is trained from scratch with four convolutional layers, batch normalisation, max pooling, dropout, and data augmentation through random crop, horizontal flip, and small rotations. The ResNet18 baseline \cite{he2016resnet} starts from ImageNet weights and fine-tunes only the final residual block and classifier head. A compact manual hyperparameter search was used for learning rate, batch size, dropout, and weight decay; all three final models selected learning rate 0.001, batch size 64, and weight decay 0.0001. The MLP and ResNet18 selected dropout 0.3, while the CNN selected dropout 0.5.
+The MLP flattens each $32\times32$ RGB image and uses four hidden layers of 512 units, batch normalisation, ReLU activations, dropout, Adam, weight decay, and early stopping. The CNN is trained from scratch with four convolutional layers, batch normalisation, max pooling, dropout, and data augmentation through random crop, horizontal flip, and small rotations. The ResNet18 baseline \cite{he2016resnet} starts from ImageNet weights and fine-tunes only the final residual block and classifier head. An Optuna-based compact search was used for learning rate, batch size, dropout, and weight decay; all three final models selected learning rate 0.001, batch size 64, and weight decay 0.0001. The MLP and ResNet18 selected dropout 0.3, while the CNN selected dropout 0.5.
 
 Each final model was configured for 4 epochs and actually trained for all 4 epochs; early stopping did not trigger. The runtime values below are final-model training times only. Search runtimes are saved separately in the generated artefacts.
 
@@ -14,7 +14,7 @@ Each final model was configured for 4 epochs and actually trained for all 4 epoc
 
 \begin{table}[htbp]
 \centering
-\caption{Question 5 test metrics on the balanced CIFAR-10 subset.}
+\caption{Question 5 test metrics on the class-balanced CIFAR-10 subset used for controlled neural-network comparison.}
 \label{tab:q5_metrics}
 \begin{tabular}{lcccc}
 \toprule
